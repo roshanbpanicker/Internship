@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AgentX — AI That Works While You Sleep</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #060B18;
+      --surface: rgba(255,255,255,0.04);
+      --surface-hover: rgba(255,255,255,0.07);
+      --border: rgba(255,255,255,0.08);
+      --text: #F1F5F9;
+      --muted: #94A3B8;
+      --primary: #818CF8;
+      --accent: #34D399;
+      --glow: rgba(129,140,248,0.25);
+      --font-display: 'Space Grotesk', sans-serif;
+      --font-body: 'Inter', sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ── AURORA ── */
+    .aurora {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .aurora-blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(90px);
+      opacity: 0.13;
+    }
+    .aurora-blob:nth-child(1) {
+      width: 640px; height: 640px;
+      background: radial-gradient(circle, #818CF8, transparent 70%);
+      top: -200px; left: -120px;
+      animation: drift1 22s ease-in-out infinite alternate;
+    }
+    .aurora-blob:nth-child(2) {
+      width: 520px; height: 520px;
+      background: radial-gradient(circle, #34D399, transparent 70%);
+      top: 180px; right: -120px;
+      animation: drift2 28s ease-in-out infinite alternate;
+    }
+    .aurora-blob:nth-child(3) {
+      width: 440px; height: 440px;
+      background: radial-gradient(circle, #6366F1, transparent 70%);
+      bottom: 60px; left: 28%;
+      animation: drift3 18s ease-in-out infinite alternate;
+    }
+    @keyframes drift1 { from { transform: translate(0,0) scale(1); } to { transform: translate(110px,90px) scale(1.25); } }
+    @keyframes drift2 { from { transform: translate(0,0) scale(1); } to { transform: translate(-90px,110px) scale(1.15); } }
+    @keyframes drift3 { from { transform: translate(0,0) scale(1); } to { transform: translate(70px,-70px) scale(1.3); } }
+
+    /* ── GRID TEXTURE ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);
+      background-size: 64px 64px;
+      pointer-events: none;
+    }
+
+    /* ── LAYOUT ── */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+      position: relative;
+      z-index: 1;
+    }
+    section { position: relative; z-index: 1; }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      background: rgba(6,11,24,0.82);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 15px 0;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1.25rem;
+      color: var(--text);
+      text-decoration: none;
+    }
+    .logo-icon {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.9rem; font-weight: 800; color: #fff;
+    }
+    .logo-by {
+      font-size: 0.62rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .nav-links {
+      display: flex; align-items: center; gap: 32px; list-style: none;
+    }
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--text); }
+    .nav-right { display: flex; align-items: center; gap: 16px; }
+    .btn-ghost {
+      color: var(--muted); text-decoration: none;
+      font-size: 0.875rem; font-weight: 500; transition: color 0.2s;
+    }
+    .btn-ghost:hover { color: var(--text); }
+    .btn-nav {
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: #fff; border: none; padding: 9px 18px; border-radius: 8px;
+      font-size: 0.875rem; font-weight: 600; cursor: pointer;
+      text-decoration: none; display: inline-block;
+      transition: opacity 0.2s, transform 0.2s; font-family: var(--font-body);
+    }
+    .btn-nav:hover { opacity: 0.88; transform: translateY(-1px); }
+    .hamburger {
+      display: none; flex-direction: column; gap: 5px;
+      cursor: pointer; padding: 4px; background: none; border: none;
+    }
+    .hamburger span {
+      width: 22px; height: 2px; background: var(--text);
+      border-radius: 2px; transition: all 0.3s; display: block;
+    }
+    .mobile-nav {
+      display: none; flex-direction: column; gap: 14px;
+      padding: 16px 0 24px; border-top: 1px solid var(--border);
+    }
+    .mobile-nav.open { display: flex; }
+    .mobile-nav a {
+      color: var(--muted); text-decoration: none;
+      font-size: 0.95rem; font-weight: 500;
+    }
+
+    /* ── HERO ── */
+    .hero { padding: 96px 0 72px; text-align: center; }
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 100px; padding: 6px 16px;
+      font-size: 0.75rem; font-weight: 700; color: var(--primary);
+      letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 28px;
+    }
+    .live-dot {
+      width: 6px; height: 6px; background: var(--accent);
+      border-radius: 50%; animation: livepulse 2s ease-in-out infinite;
+    }
+    @keyframes livepulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:.4; transform:scale(.75); } }
+    .hero h1 {
+      font-family: var(--font-display);
+      font-size: clamp(2.6rem, 7vw, 5.2rem);
+      font-weight: 800; line-height: 1.04; letter-spacing: -0.03em;
+      margin-bottom: 24px; max-width: 860px; margin-left: auto; margin-right: auto;
+    }
+    .grad {
+      background: linear-gradient(130deg, var(--primary) 0%, var(--accent) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-sub {
+      font-size: clamp(1rem, 2.5vw, 1.15rem);
+      color: var(--muted); max-width: 580px; margin: 0 auto 40px; line-height: 1.72;
+    }
+    .hero-actions {
+      display: flex; gap: 14px; justify-content: center;
+      flex-wrap: wrap; margin-bottom: 60px;
+    }
+    .btn-cta {
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: #fff; border: none; padding: 15px 30px; border-radius: 10px;
+      font-size: 1rem; font-weight: 600; cursor: pointer; text-decoration: none;
+      display: inline-flex; align-items: center; gap: 8px;
+      transition: all 0.25s; box-shadow: 0 0 40px rgba(129,140,248,0.22);
+      font-family: var(--font-body);
+    }
+    .btn-cta:hover { transform: translateY(-2px); box-shadow: 0 0 60px rgba(129,140,248,0.38); opacity: .92; }
+    .btn-outline {
+      background: var(--surface); color: var(--text);
+      border: 1px solid var(--border); padding: 15px 30px; border-radius: 10px;
+      font-size: 1rem; font-weight: 600; cursor: pointer; text-decoration: none;
+      display: inline-flex; align-items: center; gap: 8px;
+      transition: all 0.25s; font-family: var(--font-body);
+      backdrop-filter: blur(10px);
+    }
+    .btn-outline:hover { background: var(--surface-hover); transform: translateY(-2px); border-color: rgba(129,140,248,0.3); }
+
+    /* Terminal */
+    .hero-terminal-wrap {
+      max-width: 860px; margin: 0 auto;
+      background: rgba(10,15,30,0.85);
+      border: 1px solid var(--border); border-radius: 16px;
+      overflow: hidden; backdrop-filter: blur(20px);
+      box-shadow: 0 0 80px rgba(129,140,248,0.09), 0 40px 80px rgba(0,0,0,0.45);
+    }
+    .terminal-bar {
+      background: rgba(255,255,255,0.025);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 18px; display: flex; align-items: center; gap: 8px;
+    }
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .dot-r { background: #FF5F57; } .dot-y { background: #FFBD2E; } .dot-g { background: #28CA41; }
+    .term-title { margin-left: 10px; font-size: 0.78rem; color: var(--muted); }
+    .terminal-body {
+      padding: 24px 28px 28px;
+      font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+      font-size: 0.82rem; text-align: left; min-height: 210px;
+    }
+    .tl {
+      display: flex; gap: 12px; margin-bottom: 9px;
+      opacity: 0; transform: translateY(5px); transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+    .tl.vis { opacity: 1; transform: translateY(0); }
+    .tp { color: var(--accent); flex-shrink: 0; }
+    .tc { color: var(--primary); }
+    .to { color: #64748B; padding-left: 24px; }
+    .ts { color: var(--accent); padding-left: 24px; }
+    .cursor {
+      display: inline-block; width: 8px; height: 15px;
+      background: var(--primary); vertical-align: text-bottom;
+      animation: blink 1s step-end infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1}50%{opacity:0} }
+
+    /* ── STATS ── */
+    .stats { padding: 52px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .stats-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 24px; text-align: center; }
+    .stat-n {
+      font-family: var(--font-display); font-size: 2.5rem; font-weight: 800;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; line-height: 1; margin-bottom: 6px;
+    }
+    .stat-l { font-size: 0.82rem; color: var(--muted); font-weight: 500; }
+
+    /* ── SECTIONS SHARED ── */
+    .sec-head { text-align: center; margin-bottom: 60px; }
+    .eyebrow {
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.15em;
+      text-transform: uppercase; color: var(--accent); margin-bottom: 14px;
+    }
+    .sec-title {
+      font-family: var(--font-display); font-size: clamp(1.8rem,4vw,2.7rem);
+      font-weight: 700; letter-spacing: -0.025em; margin-bottom: 14px; line-height: 1.15;
+    }
+    .sec-sub { font-size: 0.97rem; color: var(--muted); max-width: 520px; margin: 0 auto; line-height: 1.68; }
+
+    /* ── FEATURES ── */
+    .features { padding: 96px 0; }
+    .feat-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; }
+    .feat-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 30px; transition: all 0.3s;
+      position: relative; overflow: hidden;
+    }
+    .feat-card:hover {
+      border-color: rgba(129,140,248,0.28); transform: translateY(-5px);
+      box-shadow: 0 24px 64px rgba(0,0,0,0.3), 0 0 40px rgba(129,140,248,0.07);
+    }
+    .feat-icon {
+      width: 46px; height: 46px; border-radius: 12px;
+      background: linear-gradient(135deg, rgba(129,140,248,0.14), rgba(52,211,153,0.09));
+      border: 1px solid rgba(129,140,248,0.18);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.35rem; margin-bottom: 18px;
+    }
+    .feat-title { font-family: var(--font-display); font-size: 1.05rem; font-weight: 600; margin-bottom: 9px; }
+    .feat-desc { font-size: 0.875rem; color: var(--muted); line-height: 1.66; }
+
+    /* ── MID CTA ── */
+    .mid-cta { padding: 72px 0; }
+    .mid-cta-box {
+      background: linear-gradient(130deg, rgba(129,140,248,0.1), rgba(52,211,153,0.07));
+      border: 1px solid rgba(129,140,248,0.22); border-radius: 24px;
+      padding: 60px 40px; text-align: center; position: relative; overflow: hidden;
+    }
+    .mid-cta-box::before {
+      content: ''; position: absolute; top: -120px; left: 50%; transform: translateX(-50%);
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(129,140,248,0.14), transparent 65%);
+      pointer-events: none;
+    }
+    .mid-cta-box h2 {
+      font-family: var(--font-display); font-size: clamp(1.7rem,4vw,2.5rem);
+      font-weight: 700; letter-spacing: -0.02em; margin-bottom: 14px; position: relative; z-index: 1;
+    }
+    .mid-cta-box p { color: var(--muted); max-width: 440px; margin: 0 auto 30px; position: relative; z-index: 1; }
+
+    /* ── PRICING ── */
+    .pricing { padding: 96px 0; }
+    .pricing-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; align-items: start; }
+    .price-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 20px; padding: 34px; position: relative; transition: transform 0.3s;
+    }
+    .price-card:hover { transform: translateY(-4px); }
+    .price-card.feat {
+      background: linear-gradient(140deg, rgba(129,140,248,0.11), rgba(52,211,153,0.07));
+      border-color: rgba(129,140,248,0.38);
+      box-shadow: 0 0 60px rgba(129,140,248,0.1);
+      transform: scale(1.03);
+    }
+    .price-card.feat:hover { transform: scale(1.03) translateY(-4px); }
+    .pop-badge {
+      position: absolute; top: -13px; left: 50%; transform: translateX(-50%);
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      color: #fff; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; padding: 4px 14px; border-radius: 100px; white-space: nowrap;
+    }
+    .plan-name { font-family: var(--font-display); font-size: 0.82rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.09em; margin-bottom: 8px; }
+    .plan-price { font-family: var(--font-display); font-size: 3rem; font-weight: 800; line-height: 1; margin-bottom: 5px; }
+    .plan-price sup { font-size: 1.3rem; vertical-align: super; font-weight: 600; }
+    .plan-per { font-size: 0.82rem; color: var(--muted); margin-bottom: 22px; }
+    .plan-div { height: 1px; background: var(--border); margin-bottom: 22px; }
+    .plan-feats { list-style: none; margin-bottom: 28px; }
+    .plan-feats li {
+      display: flex; align-items: flex-start; gap: 9px;
+      font-size: 0.875rem; color: var(--muted); margin-bottom: 11px;
+    }
+    .plan-feats li::before {
+      content: '✓'; width: 17px; height: 17px; flex-shrink: 0;
+      background: rgba(52,211,153,0.09); border: 1px solid rgba(52,211,153,0.28);
+      border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+      font-size: 0.6rem; color: var(--accent); margin-top: 1px;
+    }
+    .btn-plan {
+      width: 100%; padding: 13px; border-radius: 10px;
+      font-size: 0.92rem; font-weight: 600; cursor: pointer; border: none;
+      transition: all 0.2s; font-family: var(--font-body);
+    }
+    .btn-plan-out { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-plan-out:hover { background: var(--surface-hover); border-color: var(--primary); }
+    .btn-plan-fill { background: linear-gradient(135deg, var(--primary), var(--accent)); color: #fff; }
+    .btn-plan-fill:hover { opacity: .88; transform: translateY(-1px); box-shadow: 0 0 28px rgba(129,140,248,0.28); }
+
+    /* ── TESTIMONIALS ── */
+    .testimonials { padding: 96px 0; }
+    .test-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; }
+    .test-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 30px; transition: all 0.3s;
+    }
+    .test-card:hover { border-color: rgba(129,140,248,0.24); transform: translateY(-4px); }
+    .stars { display: flex; gap: 3px; margin-bottom: 14px; }
+    .star { color: #F59E0B; font-size: 0.85rem; }
+    .test-quote { font-size: 0.92rem; line-height: 1.72; color: var(--text); margin-bottom: 22px; }
+    .test-author { display: flex; align-items: center; gap: 11px; }
+    .avatar {
+      width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.9rem; font-weight: 700; color: #fff;
+    }
+    .author-name { font-weight: 600; font-size: 0.875rem; }
+    .author-role { font-size: 0.78rem; color: var(--muted); }
+
+    /* ── BOTTOM CTA ── */
+    .bottom-cta { padding: 100px 0; text-align: center; }
+    .bottom-cta h2 { font-family: var(--font-display); font-size: clamp(2rem,5vw,3.4rem); font-weight: 800; letter-spacing: -0.03em; margin-bottom: 14px; }
+    .bottom-cta p { color: var(--muted); max-width: 440px; margin: 0 auto 36px; }
+
+    /* ── FOOTER ── */
+    footer { border-top: 1px solid var(--border); padding: 56px 0 28px; }
+    .foot-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 48px; margin-bottom: 44px; }
+    .foot-brand .logo { margin-bottom: 14px; }
+    .foot-brand p { font-size: 0.855rem; color: var(--muted); max-width: 250px; line-height: 1.6; }
+    .socials { display: flex; gap: 10px; margin-top: 18px; }
+    .soc {
+      width: 34px; height: 34px; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; display: flex; align-items: center; justify-content: center;
+      font-size: 0.82rem; text-decoration: none; color: var(--muted); transition: all 0.2s;
+    }
+    .soc:hover { border-color: var(--primary); color: var(--primary); }
+    .foot-col h5 { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text); margin-bottom: 14px; }
+    .foot-col ul { list-style: none; }
+    .foot-col ul li { margin-bottom: 9px; }
+    .foot-col ul li a { color: var(--muted); text-decoration: none; font-size: 0.855rem; transition: color 0.2s; }
+    .foot-col ul li a:hover { color: var(--text); }
+    .foot-bottom {
+      padding-top: 28px; border-top: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .foot-copy { font-size: 0.78rem; color: var(--muted); }
+    .foot-cta-link {
+      font-size: 0.83rem; font-weight: 600; color: var(--primary); text-decoration: none;
+      display: flex; align-items: center; gap: 6px; transition: gap 0.2s;
+    }
+    .foot-cta-link:hover { gap: 10px; }
+
+    /* ── SCROLL ANIM ── */
+    .fu { opacity: 0; transform: translateY(28px); transition: opacity 0.6s ease, transform 0.6s ease; }
+    .fu.vis { opacity: 1; transform: translateY(0); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 1024px) {
+      .feat-grid { grid-template-columns: repeat(2,1fr); }
+      .pricing-grid { grid-template-columns: 1fr; max-width: 420px; margin: 0 auto; }
+      .price-card.feat { transform: none; }
+      .price-card.feat:hover { transform: translateY(-4px); }
+      .foot-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 768px) {
+      .nav-links, .nav-right { display: none; }
+      .hamburger { display: flex; }
+      .hero { padding: 60px 0 56px; }
+      .stats-grid { grid-template-columns: repeat(2,1fr); gap: 28px; }
+      .feat-grid { grid-template-columns: 1fr; }
+      .test-grid { grid-template-columns: 1fr; }
+      .mid-cta-box { padding: 40px 24px; }
+      .foot-grid { grid-template-columns: 1fr; gap: 28px; }
+      .foot-bottom { flex-direction: column; gap: 14px; text-align: center; }
+    }
+    @media (max-width: 480px) {
+      .hero-actions { flex-direction: column; align-items: center; }
+      .btn-cta, .btn-outline { width: 100%; justify-content: center; max-width: 320px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="aurora">
+    <div class="aurora-blob"></div>
+    <div class="aurora-blob"></div>
+    <div class="aurora-blob"></div>
+  </div>
+
+  <!-- ── NAV ── -->
+  <nav>
+    <div class="container">
+      <div class="nav-inner">
+        <a href="#" class="logo">
+          <div class="logo-icon">X</div>
+          AgentX
+          <span class="logo-by">by ToMatrix</span>
+        </a>
+        <ul class="nav-links">
+          <li><a href="#features">Features</a></li>
+          <li><a href="#pricing">Pricing</a></li>
+          <li><a href="#testimonials">Stories</a></li>
+          <li><a href="#">Docs</a></li>
+        </ul>
+        <div class="nav-right">
+          <a href="#" class="btn-ghost">Log in</a>
+          <a href="#" class="btn-nav">Start Free →</a>
+        </div>
+        <button class="hamburger" id="hamburger" onclick="toggleMenu()" aria-label="Toggle menu">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+      <div class="mobile-nav" id="mobileNav">
+        <a href="#features" onclick="toggleMenu()">Features</a>
+        <a href="#pricing" onclick="toggleMenu()">Pricing</a>
+        <a href="#testimonials" onclick="toggleMenu()">Stories</a>
+        <a href="#" onclick="toggleMenu()">Docs</a>
+        <a href="#" class="btn-nav" style="text-align:center;padding:11px;">Start Free →</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── HERO ── -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-eyebrow"><div class="live-dot"></div> Now in Public Beta</div>
+      <h1>
+        The AI Agent That<br>
+        <span class="grad">Never Clocks Out</span>
+      </h1>
+      <p class="hero-sub">
+        AgentX runs your most complex workflows autonomously — research, decisions, execution — while your team focuses on what only humans can do.
+      </p>
+      <div class="hero-actions">
+        <a href="#" class="btn-cta">
+          Start Free Trial
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M2.5 7.5h10M8.5 3.5l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+        <a href="#" class="btn-outline">
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="6" stroke="currentColor" stroke-width="1.5"/><path d="M6 5.2l4 2.3-4 2.3V5.2z" fill="currentColor"/></svg>
+          Watch Demo
+        </a>
+      </div>
+
+      <div class="hero-terminal-wrap">
+        <div class="terminal-bar">
+          <div class="dot dot-r"></div>
+          <div class="dot dot-y"></div>
+          <div class="dot dot-g"></div>
+          <span class="term-title">agentx — task runner v2.4.1</span>
+        </div>
+        <div class="terminal-body" id="terminal">
+          <div class="tl" id="tl1"><span class="tp">›</span><span class="tc">agentx run "Analyze competitor pricing and generate a report"</span></div>
+          <div class="tl" id="tl2"><span class="to">⚡ Spawning 3 sub-agents...</span></div>
+          <div class="tl" id="tl3"><span class="to">🔍 Agent-1: Scraping 14 competitor pages</span></div>
+          <div class="tl" id="tl4"><span class="to">📊 Agent-2: Extracting pricing data (142 entries found)</span></div>
+          <div class="tl" id="tl5"><span class="to">✍️ Agent-3: Drafting executive summary...</span></div>
+          <div class="tl" id="tl6"><span class="ts">✅ Completed in 4.2s → report saved to /outputs/pricing-analysis.pdf</span></div>
+          <div class="tl" id="tl7"><span class="tp">›</span><span class="cursor"></span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── STATS ── -->
+  <section class="stats">
+    <div class="container">
+      <div class="stats-grid">
+        <div class="fu"><div class="stat-n">50K+</div><div class="stat-l">Active agents deployed</div></div>
+        <div class="fu" style="transition-delay:.08s"><div class="stat-n">99.9%</div><div class="stat-l">Uptime SLA guaranteed</div></div>
+        <div class="fu" style="transition-delay:.16s"><div class="stat-n">200+</div><div class="stat-l">Native integrations</div></div>
+        <div class="fu" style="transition-delay:.24s"><div class="stat-n">4.8×</div><div class="stat-l">Average productivity gain</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── FEATURES ── -->
+  <section class="features" id="features">
+    <div class="container">
+      <div class="sec-head">
+        <div class="eyebrow">Features</div>
+        <h2 class="sec-title">Built for what teams<br>actually need to automate</h2>
+        <p class="sec-sub">Six core capabilities that make AgentX the last AI platform your team will ever need.</p>
+      </div>
+      <div class="feat-grid">
+        <div class="feat-card fu">
+          <div class="feat-icon">🧠</div>
+          <div class="feat-title">Autonomous Goal Execution</div>
+          <p class="feat-desc">Tell AgentX what you want — not how to do it. It plans, breaks down tasks, delegates to sub-agents, and executes until the goal is complete.</p>
+        </div>
+        <div class="feat-card fu" style="transition-delay:.09s">
+          <div class="feat-icon">⚡</div>
+          <div class="feat-title">Multi-Model Routing</div>
+          <p class="feat-desc">Automatically routes each subtask to the best-fit model — GPT-4, Claude, Gemini — based on cost, latency, and the capability required.</p>
+        </div>
+        <div class="feat-card fu" style="transition-delay:.18s">
+          <div class="feat-icon">🔗</div>
+          <div class="feat-title">Deep Integrations</div>
+          <p class="feat-desc">Connects natively to Slack, Notion, GitHub, Jira, HubSpot, and 200+ more. No middleware needed, no custom connectors to maintain.</p>
+        </div>
+        <div class="feat-card fu" style="transition-delay:.09s">
+          <div class="feat-icon">🧩</div>
+          <div class="feat-title">Persistent Memory</div>
+          <p class="feat-desc">Agents remember context across sessions, projects, and teammates. No re-briefing after a restart. No lost context between handoffs.</p>
+        </div>
+        <div class="feat-card fu" style="transition-delay:.18s">
+          <div class="feat-icon">👥</div>
+          <div class="feat-title">Agent Collaboration</div>
+          <p class="feat-desc">Deploy agent squads that work in parallel, verify each other's outputs, and surface conflicts before they ever reach your team.</p>
+        </div>
+        <div class="feat-card fu" style="transition-delay:.27s">
+          <div class="feat-icon">🔍</div>
+          <div class="feat-title">Full Observability</div>
+          <p class="feat-desc">Watch every step, decision, and tool call in real time. Pause, redirect, or roll back any agent at any point — always in control.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── MID CTA ── -->
+  <section class="mid-cta">
+    <div class="container">
+      <div class="mid-cta-box fu">
+        <div class="eyebrow" style="margin-bottom:12px">Ready to automate?</div>
+        <h2>Your competitors aren't<br>waiting — neither should you</h2>
+        <p>Teams using AgentX ship faster, cut repetitive work by 70%, and never lose context between projects.</p>
+        <a href="#" class="btn-cta" style="position:relative;z-index:1">
+          Get Started Free
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M2.5 7.5h10M8.5 3.5l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── PRICING ── -->
+  <section class="pricing" id="pricing">
+    <div class="container">
+      <div class="sec-head">
+        <div class="eyebrow">Pricing</div>
+        <h2 class="sec-title">Start free. Scale when ready.</h2>
+        <p class="sec-sub">No contracts, no surprise bills. Cancel or upgrade anytime.</p>
+      </div>
+      <div class="pricing-grid">
+
+        <div class="price-card fu">
+          <div class="plan-name">Starter</div>
+          <div class="plan-price"><sup>$</sup>0</div>
+          <div class="plan-per">per month — free forever</div>
+          <div class="plan-div"></div>
+          <ul class="plan-feats">
+            <li>Up to 5 concurrent agents</li>
+            <li>100 tasks per month</li>
+            <li>10 native integrations</li>
+            <li>Community support</li>
+            <li>7-day memory retention</li>
+          </ul>
+          <button class="btn-plan btn-plan-out">Get started free</button>
+        </div>
+
+        <div class="price-card feat fu" style="transition-delay:.1s">
+          <div class="pop-badge">Most Popular</div>
+          <div class="plan-name">Pro</div>
+          <div class="plan-price"><sup>$</sup>49</div>
+          <div class="plan-per">per seat / month</div>
+          <div class="plan-div"></div>
+          <ul class="plan-feats">
+            <li>Unlimited agents</li>
+            <li>10,000 tasks per month</li>
+            <li>All 200+ integrations</li>
+            <li>Priority support (under 4h)</li>
+            <li>Unlimited persistent memory</li>
+            <li>Multi-model routing</li>
+          </ul>
+          <button class="btn-plan btn-plan-fill">Start 14-day free trial</button>
+        </div>
+
+        <div class="price-card fu" style="transition-delay:.2s">
+          <div class="plan-name">Enterprise</div>
+          <div class="plan-price" style="font-size:2.1rem">Custom</div>
+          <div class="plan-per">tailored to your team's needs</div>
+          <div class="plan-div"></div>
+          <ul class="plan-feats">
+            <li>Everything in Pro</li>
+            <li>Unlimited tasks and agents</li>
+            <li>Dedicated infrastructure</li>
+            <li>SSO &amp; SOC 2 compliance</li>
+            <li>Dedicated success manager</li>
+            <li>Custom SLA guarantee</li>
+          </ul>
+          <button class="btn-plan btn-plan-out">Contact sales →</button>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ── TESTIMONIALS ── -->
+  <section class="testimonials" id="testimonials">
+    <div class="container">
+      <div class="sec-head">
+        <div class="eyebrow">Customer Stories</div>
+        <h2 class="sec-title">Teams that stopped doing<br>things the slow way</h2>
+      </div>
+      <div class="test-grid">
+
+        <div class="test-card fu">
+          <div class="stars"><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span></div>
+          <p class="test-quote">"AgentX cut our competitive research from two days to under an hour. Our strategy team now runs analysis that used to require a full analyst hire."</p>
+          <div class="test-author">
+            <div class="avatar">SC</div>
+            <div><div class="author-name">Sarah Chen</div><div class="author-role">Head of Product · Acme Corp</div></div>
+          </div>
+        </div>
+
+        <div class="test-card fu" style="transition-delay:.1s">
+          <div class="stars"><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span></div>
+          <p class="test-quote">"We consolidated three separate tools into AgentX in a week. The multi-agent collaboration alone saved us 20 hours of coordination overhead every month."</p>
+          <div class="test-author">
+            <div class="avatar">RP</div>
+            <div><div class="author-name">Raj Patel</div><div class="author-role">CTO · BuildFlow</div></div>
+          </div>
+        </div>
+
+        <div class="test-card fu" style="transition-delay:.2s">
+          <div class="stars"><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span></div>
+          <p class="test-quote">"Our agents handle onboarding, data sync, and weekly reports autonomously around the clock. I genuinely forget they're running — until I see the output."</p>
+          <div class="test-author">
+            <div class="avatar">MS</div>
+            <div><div class="author-name">Maria Santos</div><div class="author-role">Operations Lead · Nexus</div></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ── BOTTOM CTA ── -->
+  <section class="bottom-cta">
+    <div class="container">
+      <div class="fu">
+        <div class="eyebrow" style="margin-bottom:16px">The future is autonomous</div>
+        <h2>Ready to give your team<br>a <span class="grad">superpower?</span></h2>
+        <p>Start building with AgentX today. No credit card required. First agent live in under 5 minutes.</p>
+        <div class="hero-actions">
+          <a href="#" class="btn-cta">
+            Start for Free
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M2.5 7.5h10M8.5 3.5l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </a>
+          <a href="#" class="btn-outline">Talk to sales</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── FOOTER ── -->
+  <footer>
+    <div class="container">
+      <div class="foot-grid">
+        <div class="foot-brand">
+          <a href="#" class="logo"><div class="logo-icon">X</div>AgentX</a>
+          <p>The AI agent platform that works as hard as your team — without the overhead.</p>
+          <div class="socials">
+            <a href="#" class="soc" title="Twitter / X">𝕏</a>
+            <a href="#" class="soc" title="GitHub">⌨</a>
+            <a href="#" class="soc" title="LinkedIn">in</a>
+          </div>
+        </div>
+        <div class="foot-col">
+          <h5>Product</h5>
+          <ul>
+            <li><a href="#">Features</a></li>
+            <li><a href="#">Integrations</a></li>
+            <li><a href="#">Pricing</a></li>
+            <li><a href="#">Changelog</a></li>
+            <li><a href="#">Roadmap</a></li>
+          </ul>
+        </div>
+        <div class="foot-col">
+          <h5>Resources</h5>
+          <ul>
+            <li><a href="#">Documentation</a></li>
+            <li><a href="#">API Reference</a></li>
+            <li><a href="#">Templates</a></li>
+            <li><a href="#">Blog</a></li>
+            <li><a href="#">Community</a></li>
+          </ul>
+        </div>
+        <div class="foot-col">
+          <h5>Company</h5>
+          <ul>
+            <li><a href="#">About ToMatrix</a></li>
+            <li><a href="#">Careers</a></li>
+            <li><a href="#">Security</a></li>
+            <li><a href="#">Privacy Policy</a></li>
+            <li><a href="#">Terms of Service</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="foot-bottom">
+        <p class="foot-copy">© 2025 ToMatrix Inc. All rights reserved.</p>
+        <a href="#" class="foot-cta-link">Deploy your first agent →</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    /* Mobile menu */
+    function toggleMenu() {
+      document.getElementById('mobileNav').classList.toggle('open');
+    }
+
+    /* Terminal typewriter */
+    const lines = ['tl1','tl2','tl3','tl4','tl5','tl6','tl7'];
+    let idx = 0;
+    function tick() {
+      if (idx < lines.length) {
+        const el = document.getElementById(lines[idx]);
+        if (el) el.classList.add('vis');
+        idx++;
+        setTimeout(tick, idx === 1 ? 320 : 640);
+      }
+    }
+    setTimeout(tick, 900);
+
+    /* Scroll fade-up */
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('vis'); } });
+    }, { threshold: 0.12 });
+    document.querySelectorAll('.fu').forEach(el => obs.observe(el));
+  </script>
+</body>
+</html>
